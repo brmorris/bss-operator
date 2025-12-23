@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- bss_v1alpha1_bsscluster.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
