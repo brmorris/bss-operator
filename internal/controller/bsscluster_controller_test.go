@@ -51,7 +51,9 @@ var _ = Describe("BssCluster Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: bssv1alpha1.BssClusterSpec{
+						Image: "nginx:latest",
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}

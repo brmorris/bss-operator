@@ -95,7 +95,7 @@ func (r *BssClusterReconciler) Reconcile(
     cluster.Status.Phase = "Reconciling"
     _ = r.Status().Update(ctx, &cluster)
 
-    // TODO: create or update StatefulSet
+    // TODO brad: create or update StatefulSet
     // TODO: create or update Service
 
     cluster.Status.Phase = "Ready"

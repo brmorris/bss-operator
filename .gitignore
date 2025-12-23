@@ -25,3 +25,9 @@ go.work
 *.swp
 *.swo
 *~
+
+# Test coverage output
+cover.out
+
+# Bundle build artifacts
+bundle-*/

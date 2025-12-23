@@ -1,0 +1,49 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: bss-operator.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: BssCluster is the Schema for the bssclusters API.
+      displayName: Bss Cluster
+      kind: BssCluster
+      name: bssclusters.bss.localhost
+      version: v1alpha1
+  description: brad's super simple operator
+  displayName: bss-operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - toy
+  - learning
+  links:
+  - name: Bss Operator
+    url: https://bss-operator.domain
+  maintainers:
+  - email: bss-operator@users.noreply.github.com
+    name: brmorris
+  maturity: alpha
+  provider:
+    name: brmorris
+    url: https://github.com/brmorris/bss-operator
+  version: 0.0.0
