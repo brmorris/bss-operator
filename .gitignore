@@ -31,3 +31,6 @@ cover.out
 
 # Bundle build artifacts
 bundle-*/
+
+# AI generated reference files
+AI_REF/

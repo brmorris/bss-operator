@@ -202,10 +202,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := (&controller.BssClusterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	// Initialize the controller with all dependencies
+	if err := controller.NewBssClusterReconciler(
+		mgr.GetClient(),
+		mgr.GetScheme(),
+	).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BssCluster")
 		os.Exit(1)
 	}
