@@ -18,9 +18,12 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -28,6 +31,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	bssv1alpha1 "github.com/brmorris/bss-operator/api/v1alpha1"
+)
+
+const (
+	timeout  = time.Second * 10
+	interval = time.Millisecond * 250
 )
 
 var _ = Describe("BssCluster Controller", func() {
@@ -70,17 +78,34 @@ var _ = Describe("BssCluster Controller", func() {
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
-			controllerReconciler := &BssClusterReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
+			controllerReconciler := NewBssClusterReconciler(k8sClient, k8sClient.Scheme())
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
+
+			// Verify StatefulSet was created
+			By("Checking that StatefulSet was created")
+			statefulSet := &appsv1.StatefulSet{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, typeNamespacedName, statefulSet)
+			}, timeout, interval).Should(Succeed())
+
+			// Verify Service was created
+			By("Checking that Service was created")
+			service := &corev1.Service{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, typeNamespacedName, service)
+			}, timeout, interval).Should(Succeed())
+
+			// Verify status was updated
+			By("Checking that status was updated to Ready")
+			updatedCluster := &bssv1alpha1.BssCluster{}
+			Eventually(func() string {
+				_ = k8sClient.Get(ctx, typeNamespacedName, updatedCluster)
+				return updatedCluster.Status.Phase
+			}, timeout, interval).Should(Equal("Ready"))
 		})
 	})
 })

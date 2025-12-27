@@ -18,19 +18,17 @@ package controller
 
 import (
 	"context"
-	"fmt"
 
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	bssv1alpha1 "github.com/brmorris/bss-operator/api/v1alpha1"
+	"github.com/brmorris/bss-operator/internal/resources"
+	"github.com/brmorris/bss-operator/internal/validation"
 )
 
 const (
@@ -44,6 +42,24 @@ const (
 type BssClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+
+	// Resource reconcilers
+	statefulSetReconciler *resources.StatefulSetReconciler
+	serviceReconciler     *resources.ServiceReconciler
+
+	// Validator
+	validator *validation.Validator
+}
+
+// NewBssClusterReconciler creates a new BssClusterReconciler with all dependencies
+func NewBssClusterReconciler(c client.Client, scheme *runtime.Scheme) *BssClusterReconciler {
+	return &BssClusterReconciler{
+		Client:                c,
+		Scheme:                scheme,
+		statefulSetReconciler: resources.NewStatefulSetReconciler(c, scheme),
+		serviceReconciler:     resources.NewServiceReconciler(c, scheme),
+		validator:             validation.NewValidator(),
+	}
 }
 
 // +kubebuilder:rbac:groups=bss.localhost,resources=bssclusters,verbs=get;list;watch;create;update;patch;delete
@@ -74,10 +90,9 @@ func (r *BssClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	log.Info("Reconciling BssCluster", "name", bssCluster.Name, "namespace", bssCluster.Namespace)
 
 	// Validate the spec
-	if err := r.validateBssCluster(&bssCluster); err != nil {
+	if err := r.validator.Validate(&bssCluster); err != nil {
 		log.Error(err, "BssCluster validation failed")
-		bssCluster.Status.Phase = phaseFailed
-		if statusErr := r.Status().Update(ctx, &bssCluster); statusErr != nil {
+		if statusErr := r.updateStatus(ctx, &bssCluster, phaseFailed); statusErr != nil {
 			log.Error(statusErr, "Failed to update BssCluster status")
 			return ctrl.Result{}, statusErr
 		}
@@ -85,31 +100,20 @@ func (r *BssClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Update status to Reconciling
-	bssCluster.Status.Phase = phaseReconciling
-	if err := r.Status().Update(ctx, &bssCluster); err != nil {
+	if err := r.updateStatus(ctx, &bssCluster, phaseReconciling); err != nil {
 		log.Error(err, "Failed to update BssCluster status to Reconciling")
 		return ctrl.Result{}, err
 	}
 
-	// Reconcile the StatefulSet
-	if err := r.reconcileStatefulSet(ctx, &bssCluster); err != nil {
-		log.Error(err, "Failed to reconcile StatefulSet")
-		bssCluster.Status.Phase = phaseFailed
-		_ = r.Status().Update(ctx, &bssCluster)
-		return ctrl.Result{}, err
-	}
-
-	// Reconcile the Service
-	if err := r.reconcileService(ctx, &bssCluster); err != nil {
-		log.Error(err, "Failed to reconcile Service")
-		bssCluster.Status.Phase = phaseFailed
-		_ = r.Status().Update(ctx, &bssCluster)
+	// Reconcile all resources
+	if err := r.reconcileResources(ctx, &bssCluster, log); err != nil {
+		log.Error(err, "Failed to reconcile resources")
+		_ = r.updateStatus(ctx, &bssCluster, phaseFailed)
 		return ctrl.Result{}, err
 	}
 
 	// Update status to Ready
-	bssCluster.Status.Phase = phaseReady
-	if err := r.Status().Update(ctx, &bssCluster); err != nil {
+	if err := r.updateStatus(ctx, &bssCluster, phaseReady); err != nil {
 		log.Error(err, "Failed to update BssCluster status to Ready")
 		return ctrl.Result{}, err
 	}
@@ -118,114 +122,32 @@ func (r *BssClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-// validateBssCluster validates the BssCluster spec
-func (r *BssClusterReconciler) validateBssCluster(bssCluster *bssv1alpha1.BssCluster) error {
-	if bssCluster.Spec.Image == "" {
-		return fmt.Errorf("spec.image is required but not specified")
-	}
-	return nil
-}
-
-// reconcileStatefulSet creates or updates the StatefulSet for the BssCluster
-func (r *BssClusterReconciler) reconcileStatefulSet(ctx context.Context, bssCluster *bssv1alpha1.BssCluster) error {
-	log := logf.FromContext(ctx)
-
-	statefulSet := &appsv1.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      bssCluster.Name,
-			Namespace: bssCluster.Namespace,
-		},
-	}
-
-	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, statefulSet, func() error {
-		// Set replicas (default to 1 if not specified)
-		replicas := int32(1)
-		if bssCluster.Spec.Replicas != nil {
-			replicas = *bssCluster.Spec.Replicas
-		}
-
-		// Define the StatefulSet spec
-		statefulSet.Spec = appsv1.StatefulSetSpec{
-			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": bssCluster.Name,
-				},
-			},
-			ServiceName: bssCluster.Name,
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": bssCluster.Name,
-					},
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "bss",
-							Image: bssCluster.Spec.Image,
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          "http",
-									ContainerPort: 8080,
-									Protocol:      corev1.ProtocolTCP,
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		// Set the owner reference
-		return controllerutil.SetControllerReference(bssCluster, statefulSet, r.Scheme)
-	})
-
-	if err != nil {
+// reconcileResources reconciles all child resources
+func (r *BssClusterReconciler) reconcileResources(ctx context.Context, bssCluster *bssv1alpha1.BssCluster, log logr.Logger) error {
+	// Reconcile Service first (required for StatefulSet)
+	if err := r.serviceReconciler.Reconcile(ctx, bssCluster, log); err != nil {
 		return err
 	}
 
-	log.Info("StatefulSet reconciled", "operation", op, "name", statefulSet.Name)
-	return nil
-}
-
-// reconcileService creates or updates the Service for the BssCluster
-func (r *BssClusterReconciler) reconcileService(ctx context.Context, bssCluster *bssv1alpha1.BssCluster) error {
-	log := logf.FromContext(ctx)
-
-	service := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      bssCluster.Name,
-			Namespace: bssCluster.Namespace,
-		},
-	}
-
-	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, service, func() error {
-		// Define the Service spec
-		service.Spec = corev1.ServiceSpec{
-			Selector: map[string]string{
-				"app": bssCluster.Name,
-			},
-			Ports: []corev1.ServicePort{
-				{
-					Name:     "http",
-					Port:     8080,
-					Protocol: corev1.ProtocolTCP,
-				},
-			},
-			ClusterIP: corev1.ClusterIPNone, // Headless service for StatefulSet
-		}
-
-		// Set the owner reference
-		return controllerutil.SetControllerReference(bssCluster, service, r.Scheme)
-	})
-
-	if err != nil {
+	// Reconcile StatefulSet
+	if err := r.statefulSetReconciler.Reconcile(ctx, bssCluster, log); err != nil {
 		return err
 	}
 
-	log.Info("Service reconciled", "operation", op, "name", service.Name)
+	// Add more resource reconcilers here as you expand:
+	// - ConfigMaps
+	// - Secrets
+	// - PVCs
+	// - Ingress
+	// - etc.
+
 	return nil
+}
+
+// updateStatus updates the status of the BssCluster
+func (r *BssClusterReconciler) updateStatus(ctx context.Context, bssCluster *bssv1alpha1.BssCluster, phase string) error {
+	bssCluster.Status.Phase = phase
+	return r.Status().Update(ctx, bssCluster)
 }
 
 // SetupWithManager sets up the controller with the Manager.
