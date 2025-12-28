@@ -44,8 +44,8 @@ type BssClusterReconciler struct {
 	Scheme *runtime.Scheme
 
 	// Resource reconcilers
-	statefulSetReconciler *resources.StatefulSetReconciler
-	serviceReconciler     *resources.ServiceReconciler
+	deploymentReconciler *resources.DeploymentReconciler
+	serviceReconciler    *resources.ServiceReconciler
 
 	// Validator
 	validator *validation.Validator
@@ -54,18 +54,18 @@ type BssClusterReconciler struct {
 // NewBssClusterReconciler creates a new BssClusterReconciler with all dependencies
 func NewBssClusterReconciler(c client.Client, scheme *runtime.Scheme) *BssClusterReconciler {
 	return &BssClusterReconciler{
-		Client:                c,
-		Scheme:                scheme,
-		statefulSetReconciler: resources.NewStatefulSetReconciler(c, scheme),
-		serviceReconciler:     resources.NewServiceReconciler(c, scheme),
-		validator:             validation.NewValidator(),
+		Client:               c,
+		Scheme:               scheme,
+		deploymentReconciler: resources.NewDeploymentReconciler(c, scheme),
+		serviceReconciler:    resources.NewServiceReconciler(c, scheme),
+		validator:            validation.NewValidator(),
 	}
 }
 
 // +kubebuilder:rbac:groups=bss.localhost,resources=bssclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=bss.localhost,resources=bssclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=bss.localhost,resources=bssclusters/finalizers,verbs=update
-// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -124,22 +124,15 @@ func (r *BssClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 // reconcileResources reconciles all child resources
 func (r *BssClusterReconciler) reconcileResources(ctx context.Context, bssCluster *bssv1alpha1.BssCluster, log logr.Logger) error {
-	// Reconcile Service first (required for StatefulSet)
+	// Reconcile Service first
 	if err := r.serviceReconciler.Reconcile(ctx, bssCluster, log); err != nil {
 		return err
 	}
 
-	// Reconcile StatefulSet
-	if err := r.statefulSetReconciler.Reconcile(ctx, bssCluster, log); err != nil {
+	// Reconcile Deployment
+	if err := r.deploymentReconciler.Reconcile(ctx, bssCluster, log); err != nil {
 		return err
 	}
-
-	// Add more resource reconcilers here as you expand:
-	// - ConfigMaps
-	// - Secrets
-	// - PVCs
-	// - Ingress
-	// - etc.
 
 	return nil
 }

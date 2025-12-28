@@ -41,16 +41,20 @@ func (v *Validator) Validate(bssCluster *bssv1alpha1.BssCluster) error {
 }
 
 func (v *Validator) validateSpec(bssCluster *bssv1alpha1.BssCluster) error {
-	// Validate image
-	if bssCluster.Spec.Image == "" {
-		return fmt.Errorf("spec.image is required but not specified")
+	// Validate name
+	if bssCluster.Spec.Name == "" {
+		return fmt.Errorf("spec.name is required but not specified")
+	}
+
+	// Validate version
+	if bssCluster.Spec.Version == "" {
+		return fmt.Errorf("spec.version is required but not specified")
 	}
 
 	// Validate replicas
-	if bssCluster.Spec.Replicas != nil && *bssCluster.Spec.Replicas < 0 {
-		return fmt.Errorf("spec.replicas must be non-negative")
+	if bssCluster.Spec.Replicas != nil && *bssCluster.Spec.Replicas < 1 {
+		return fmt.Errorf("spec.replicas must be at least 1")
 	}
 
-	// Add more spec validation as you add fields
 	return nil
 }

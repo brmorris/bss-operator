@@ -21,4 +21,12 @@ should return something like
 
 ## Docker publish
 
+```
 docker build -t bss-api:1.0.0 .
+```
+
+and then optionally:
+
+```
+kind load docker-image bss-api:1.0.0
+```

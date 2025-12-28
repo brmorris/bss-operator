@@ -47,12 +47,12 @@ func (b *ServiceBuilder) Build() *corev1.Service {
 			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{
-			ClusterIP: corev1.ClusterIPNone, // Headless service for StatefulSet
-			Selector:  selectorLabels,
+			Type:     corev1.ServiceTypeClusterIP,
+			Selector: selectorLabels,
 			Ports: []corev1.ServicePort{
 				{
 					Name:     "http",
-					Port:     8080,
+					Port:     80,
 					Protocol: corev1.ProtocolTCP,
 				},
 			},
