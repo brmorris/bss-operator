@@ -3,10 +3,10 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o api
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bss-api-server
 
 FROM gcr.io/distroless/base-debian12
 WORKDIR /
-COPY --from=build /app/api /api
+COPY --from=build /app/bss-api-server /bss-api-server
 EXPOSE 8880
-ENTRYPOINT ["/api"]
+ENTRYPOINT ["/bss-api-server"]
