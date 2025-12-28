@@ -140,3 +140,11 @@ argocd app sync bss-clusters  # manual sync if needed
 10191  kubectl logs -n bss-operator-system bss-operator-controller-manager-b855f588d-qqg5x --tail=100 | grep -i "reconcil\|bsscluster\|deploy\|error" | tail -20
 10192  kubectl get deployment,service -n default -l app.kubernetes.io/instance=bsscluster-sample
 ```
+
+# bss-api
+
+portforwarding:
+
+```
+kubectl port-forward -n default deployment/bsscluster-sample 8880:8880 &
+```
