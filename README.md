@@ -31,8 +31,8 @@ kubectl logs -f -n bss-operator-system deployment/bss-operator-controller-manage
 
 ```sh
 # Setup (one-time)
-./hacks/argocd/setup-github-access.sh <GITHUB_PAT>
-kubectl apply -f hacks/argocd/app-of-apps.yaml
+./hack/argocd/setup-github-access.sh <GITHUB_PAT>
+kubectl apply -f hack/argocd/app-of-apps.yaml
 
 # Workflow: edit → commit → push (ArgoCD auto-syncs)
 vim config/samples/bss_v1alpha1_bsscluster.yaml
@@ -61,4 +61,4 @@ make test
 kubectl get bsscluster
 ```
 
-See [docs/command_reference.md](docs/command_reference.md) and [hacks/argocd/README.md](argocd/README.md) for details.
+See [docs/command_reference.md](docs/command_reference.md) and [hack/argocd/README.md](argocd/README.md) for details.
