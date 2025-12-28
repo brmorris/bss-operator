@@ -39,16 +39,21 @@ spec:
           spec:
             description: BssClusterSpec defines the desired state of BssCluster.
             properties:
-              image:
+              name:
+                description: Name is the name of the bss-api cluster to create
                 type: string
               replicas:
-                description: |-
-                  INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
+                default: 1
+                description: Replicas is the number of bss-api replicas to deploy
                 format: int32
+                minimum: 1
                 type: integer
+              version:
+                description: Version is the version of bss-api to deploy
+                type: string
             required:
-            - image
+            - name
+            - version
             type: object
           status:
             description: BssClusterStatus defines the observed state of BssCluster.

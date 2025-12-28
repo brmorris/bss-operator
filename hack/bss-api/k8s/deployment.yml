@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bss-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bss-api
+  template:
+    metadata:
+      labels:
+        app: bss-api
+    spec:
+      containers:
+        - name: api
+          image: bss-api:latest
+          ports:
+            - containerPort: 8880

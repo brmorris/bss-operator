@@ -60,7 +60,8 @@ var _ = Describe("BssCluster Controller", func() {
 						Namespace: "default",
 					},
 					Spec: bssv1alpha1.BssClusterSpec{
-						Image: "nginx:latest",
+						Name:    "test-cluster",
+						Version: "1.0.0",
 					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
@@ -76,6 +77,7 @@ var _ = Describe("BssCluster Controller", func() {
 			By("Cleanup the specific resource instance BssCluster")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
+
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := NewBssClusterReconciler(k8sClient, k8sClient.Scheme())
@@ -85,11 +87,11 @@ var _ = Describe("BssCluster Controller", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			// Verify StatefulSet was created
-			By("Checking that StatefulSet was created")
-			statefulSet := &appsv1.StatefulSet{}
+			// Verify Deployment was created
+			By("Checking that Deployment was created")
+			deployment := &appsv1.Deployment{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, typeNamespacedName, statefulSet)
+				return k8sClient.Get(ctx, typeNamespacedName, deployment)
 			}, timeout, interval).Should(Succeed())
 
 			// Verify Service was created

@@ -24,33 +24,32 @@ import (
 	bssv1alpha1 "github.com/brmorris/bss-operator/api/v1alpha1"
 )
 
-// StatefulSetBuilder builds a StatefulSet for a BssCluster
-type StatefulSetBuilder struct {
+// DeploymentBuilder builds a Deployment for a BssCluster
+type DeploymentBuilder struct {
 	bssCluster *bssv1alpha1.BssCluster
 }
 
-// NewStatefulSetBuilder creates a new StatefulSetBuilder
-func NewStatefulSetBuilder(bssCluster *bssv1alpha1.BssCluster) *StatefulSetBuilder {
-	return &StatefulSetBuilder{
+// NewDeploymentBuilder creates a new DeploymentBuilder
+func NewDeploymentBuilder(bssCluster *bssv1alpha1.BssCluster) *DeploymentBuilder {
+	return &DeploymentBuilder{
 		bssCluster: bssCluster,
 	}
 }
 
-// Build constructs the StatefulSet
-func (b *StatefulSetBuilder) Build() *appsv1.StatefulSet {
+// Build constructs the Deployment for bss-api
+func (b *DeploymentBuilder) Build() *appsv1.Deployment {
 	replicas := b.getReplicas()
 	labels := CommonLabels(b.bssCluster)
 	selectorLabels := SelectorLabels(b.bssCluster)
 
-	return &appsv1.StatefulSet{
+	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      b.bssCluster.Name,
 			Namespace: b.bssCluster.Namespace,
 			Labels:    labels,
 		},
-		Spec: appsv1.StatefulSetSpec{
-			Replicas:    &replicas,
-			ServiceName: b.bssCluster.Name,
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,
 			},
@@ -60,34 +59,35 @@ func (b *StatefulSetBuilder) Build() *appsv1.StatefulSet {
 				},
 				Spec: b.buildPodSpec(),
 			},
-			// VolumeClaimTemplates can be added here when you add PVC support
 		},
 	}
 }
 
-func (b *StatefulSetBuilder) buildPodSpec() corev1.PodSpec {
+func (b *DeploymentBuilder) buildPodSpec() corev1.PodSpec {
 	return corev1.PodSpec{
 		Containers: []corev1.Container{
 			{
-				Name:  "bss",
-				Image: "bss-api:" + b.bssCluster.Spec.Version,
+				Name:  "bss-api",
+				Image: b.getImage(),
 				Ports: []corev1.ContainerPort{
 					{
 						Name:          "http",
-						ContainerPort: 8080,
+						ContainerPort: 8880,
 						Protocol:      corev1.ProtocolTCP,
 					},
 				},
-				// Resources, env vars, volume mounts can be added here
 			},
 		},
-		// Volumes can be added here when you add ConfigMap/Secret support
 	}
 }
 
-func (b *StatefulSetBuilder) getReplicas() int32 {
+func (b *DeploymentBuilder) getReplicas() int32 {
 	if b.bssCluster.Spec.Replicas != nil {
 		return *b.bssCluster.Spec.Replicas
 	}
 	return 1
+}
+
+func (b *DeploymentBuilder) getImage() string {
+	return "bss-api:" + b.bssCluster.Spec.Version
 }

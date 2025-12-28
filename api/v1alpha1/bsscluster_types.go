@@ -26,8 +26,17 @@ import (
 type BssClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	// Name is the name of the bss-api cluster to create
+	Name string `json:"name"`
+
+	// Replicas is the number of bss-api replicas to deploy
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=1
 	Replicas *int32 `json:"replicas,omitempty"`
-	Image    string `json:"image"`
+
+	// Version is the version of bss-api to deploy
+	Version string `json:"version"`
 }
 
 // BssClusterStatus defines the observed state of BssCluster.
