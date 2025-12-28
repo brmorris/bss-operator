@@ -63,7 +63,7 @@ spec:
         args:
           - --leader-elect
           - --health-probe-bind-address=:8081
-        image: controller:latest
+        image: bss-operator:v0.0.2
         imagePullPolicy: IfNotPresent
         name: manager
         ports: []

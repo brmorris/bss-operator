@@ -129,3 +129,14 @@ git add . && git commit -m "Update cluster config" && git push
 kubectl get applications -n argocd
 argocd app sync bss-clusters  # manual sync if needed
 ```
+
+# debugging notes
+
+```
+10187  kubectl get bsscluster -A
+10188  kubectl get bsscluster bsscluster-sample -o yaml
+10189  kubectl get pods -n bss-operator-system
+10190  kubectl logs -n bss-operator-system bss-operator-controller-manager-b855f588d-qqg5x --tail=50
+10191  kubectl logs -n bss-operator-system bss-operator-controller-manager-b855f588d-qqg5x --tail=100 | grep -i "reconcil\|bsscluster\|deploy\|error" | tail -20
+10192  kubectl get deployment,service -n default -l app.kubernetes.io/instance=bsscluster-sample
+```
