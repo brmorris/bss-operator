@@ -25,4 +25,6 @@ resources:
 - bsscluster_admin_role.yaml
 - bsscluster_editor_role.yaml
 - bsscluster_viewer_role.yaml
+- bssquery_editor_role.yaml
+- bssquery_viewer_role.yaml
 

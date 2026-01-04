@@ -35,3 +35,13 @@ func (s *MemoryStore) Delete(id string) {
 	defer s.mu.Unlock()
 	delete(s.clusters, id)
 }
+
+func (s *MemoryStore) List() []*model.Cluster {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	clusters := make([]*model.Cluster, 0, len(s.clusters))
+	for _, c := range s.clusters {
+		clusters = append(clusters, c)
+	}
+	return clusters
+}

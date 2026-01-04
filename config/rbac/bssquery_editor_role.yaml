@@ -1,0 +1,27 @@
+# permissions for end users to edit bssqueries.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: bss-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: bssquery-editor-role
+rules:
+- apiGroups:
+  - bss.localhost
+  resources:
+  - bssqueries
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - bss.localhost
+  resources:
+  - bssqueries/status
+  verbs:
+  - get

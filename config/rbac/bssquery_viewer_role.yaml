@@ -1,0 +1,23 @@
+# permissions for end users to view bssqueries.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: bss-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: bssquery-viewer-role
+rules:
+- apiGroups:
+  - bss.localhost
+  resources:
+  - bssqueries
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bss.localhost
+  resources:
+  - bssqueries/status
+  verbs:
+  - get

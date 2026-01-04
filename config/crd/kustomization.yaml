@@ -3,6 +3,7 @@
 # It should be run by config/default
 resources:
 - bases/bss.localhost_bssclusters.yaml
+- bases/bss.localhost_bssqueries.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:
