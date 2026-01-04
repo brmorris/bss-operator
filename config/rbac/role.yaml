@@ -32,6 +32,7 @@ rules:
   - bss.localhost
   resources:
   - bssclusters
+  - bssqueries
   verbs:
   - create
   - delete
@@ -44,12 +45,14 @@ rules:
   - bss.localhost
   resources:
   - bssclusters/finalizers
+  - bssqueries/finalizers
   verbs:
   - update
 - apiGroups:
   - bss.localhost
   resources:
   - bssclusters/status
+  - bssqueries/status
   verbs:
   - get
   - patch
