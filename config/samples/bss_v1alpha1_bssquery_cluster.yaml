@@ -1,0 +1,12 @@
+apiVersion: bss.localhost/v1alpha1
+kind: BSSQuery
+metadata:
+  labels:
+    app.kubernetes.io/name: bss-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: bssquery-sample-cluster
+spec:
+  apiEndpoint: "http://localhost:8880/graphql"
+  query: cluster
+  clusterID: "your-cluster-id-here"
+  refreshInterval: 30
