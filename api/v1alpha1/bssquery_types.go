@@ -72,13 +72,13 @@ type BSSQueryStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=bssq
-//+kubebuilder:printcolumn:name="Query Type",type=string,JSONPath=`.spec.query`
-//+kubebuilder:printcolumn:name="Endpoint",type=string,JSONPath=`.spec.apiEndpoint`
-//+kubebuilder:printcolumn:name="Last Query",type=date,JSONPath=`.status.lastQueryTime`
-//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=bssq
+// +kubebuilder:printcolumn:name="Query Type",type=string,JSONPath=`.spec.query`
+// +kubebuilder:printcolumn:name="Endpoint",type=string,JSONPath=`.spec.apiEndpoint`
+// +kubebuilder:printcolumn:name="Last Query",type=date,JSONPath=`.status.lastQueryTime`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // BSSQuery is the Schema for the bssqueries API
 type BSSQuery struct {
@@ -89,7 +89,7 @@ type BSSQuery struct {
 	Status BSSQueryStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // BSSQueryList contains a list of BSSQuery
 type BSSQueryList struct {

@@ -52,28 +52,28 @@ type BSSQueryReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=bss.localhost,resources=bssqueries,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=bss.localhost,resources=bssqueries/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=bss.localhost,resources=bssqueries/finalizers,verbs=update
+// +kubebuilder:rbac:groups=bss.localhost,resources=bssqueries,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=bss.localhost,resources=bssqueries/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=bss.localhost,resources=bssqueries/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *BSSQueryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
 	// Fetch the BSSQuery instance
 	bssQuery := &bssv1alpha1.BSSQuery{}
 	if err := r.Get(ctx, req.NamespacedName, bssQuery); err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("BSSQuery resource not found. Ignoring since object must be deleted")
+			logger.Info("BSSQuery resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "Failed to get BSSQuery")
+		logger.Error(err, "Failed to get BSSQuery")
 		return ctrl.Result{}, err
 	}
 
 	// Set the status as Unknown when no status is available
-	if bssQuery.Status.Conditions == nil || len(bssQuery.Status.Conditions) == 0 {
+	if len(bssQuery.Status.Conditions) == 0 {
 		meta.SetStatusCondition(&bssQuery.Status.Conditions, metav1.Condition{
 			Type:               TypeAvailable,
 			Status:             metav1.ConditionUnknown,
@@ -82,13 +82,13 @@ func (r *BSSQueryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			Message:            "Starting reconciliation",
 		})
 		if err := r.Status().Update(ctx, bssQuery); err != nil {
-			log.Error(err, "Failed to update BSSQuery status")
+			logger.Error(err, "Failed to update BSSQuery status")
 			return ctrl.Result{}, err
 		}
 
 		// Re-fetch the BSSQuery after updating status
 		if err := r.Get(ctx, req.NamespacedName, bssQuery); err != nil {
-			log.Error(err, "Failed to re-fetch BSSQuery")
+			logger.Error(err, "Failed to re-fetch BSSQuery")
 			return ctrl.Result{}, err
 		}
 	}
@@ -103,7 +103,7 @@ func (r *BSSQueryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			Message:            err.Error(),
 		})
 		if err := r.Status().Update(ctx, bssQuery); err != nil {
-			log.Error(err, "Failed to update BSSQuery status")
+			logger.Error(err, "Failed to update BSSQuery status")
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, err
@@ -111,7 +111,7 @@ func (r *BSSQueryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// Execute the GraphQL query
 	if err := r.executeQuery(ctx, bssQuery); err != nil {
-		log.Error(err, "Failed to execute query")
+		logger.Error(err, "Failed to execute query")
 		meta.SetStatusCondition(&bssQuery.Status.Conditions, metav1.Condition{
 			Type:               TypeDegraded,
 			Status:             metav1.ConditionTrue,
@@ -120,7 +120,7 @@ func (r *BSSQueryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			Message:            fmt.Sprintf("Query failed: %v", err),
 		})
 		if err := r.Status().Update(ctx, bssQuery); err != nil {
-			log.Error(err, "Failed to update BSSQuery status")
+			logger.Error(err, "Failed to update BSSQuery status")
 			return ctrl.Result{}, err
 		}
 		// Requeue with a delay
@@ -153,7 +153,7 @@ func (r *BSSQueryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	bssQuery.Status.LastQueryTime = &now
 
 	if err := r.Status().Update(ctx, bssQuery); err != nil {
-		log.Error(err, "Failed to update BSSQuery status")
+		logger.Error(err, "Failed to update BSSQuery status")
 		return ctrl.Result{}, err
 	}
 
@@ -163,7 +163,7 @@ func (r *BSSQueryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		refreshInterval = 30 * time.Second
 	}
 
-	log.Info("Successfully reconciled BSSQuery", "requeueAfter", refreshInterval)
+	logger.Info("Successfully reconciled BSSQuery", "requeueAfter", refreshInterval)
 	return ctrl.Result{RequeueAfter: refreshInterval}, nil
 }
 
@@ -182,14 +182,14 @@ func (r *BSSQueryReconciler) validateQuery(bssQuery *bssv1alpha1.BSSQuery) error
 
 // executeQuery executes the GraphQL query and updates the status
 func (r *BSSQueryReconciler) executeQuery(ctx context.Context, bssQuery *bssv1alpha1.BSSQuery) error {
-	log := log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
 	// Create GraphQL client
-	client := bssclient.NewGraphQLClient(bssQuery.Spec.APIEndpoint)
+	gqlClient := bssclient.NewGraphQLClient(bssQuery.Spec.APIEndpoint)
 
 	switch bssQuery.Spec.Query {
 	case bssv1alpha1.QueryTypeCluster:
-		cluster, err := client.GetCluster(bssQuery.Spec.ClusterID)
+		cluster, err := gqlClient.GetCluster(bssQuery.Spec.ClusterID)
 		if err != nil {
 			return fmt.Errorf("failed to get cluster: %w", err)
 		}
@@ -205,10 +205,10 @@ func (r *BSSQueryReconciler) executeQuery(ctx context.Context, bssQuery *bssv1al
 
 		bssQuery.Status.Result = string(resultJSON)
 		bssQuery.Status.ClusterCount = 1
-		log.Info("Retrieved cluster", "id", cluster.ID, "name", cluster.Name, "state", cluster.State)
+		logger.Info("Retrieved cluster", "id", cluster.ID, "name", cluster.Name, "state", cluster.State)
 
 	case bssv1alpha1.QueryTypeClusters:
-		clusters, err := client.ListClusters()
+		clusters, err := gqlClient.ListClusters()
 		if err != nil {
 			return fmt.Errorf("failed to list clusters: %w", err)
 		}
@@ -220,7 +220,7 @@ func (r *BSSQueryReconciler) executeQuery(ctx context.Context, bssQuery *bssv1al
 
 		bssQuery.Status.Result = string(resultJSON)
 		bssQuery.Status.ClusterCount = len(clusters)
-		log.Info("Retrieved clusters", "count", len(clusters))
+		logger.Info("Retrieved clusters", "count", len(clusters))
 
 	default:
 		return fmt.Errorf("unknown query type: %s", bssQuery.Spec.Query)
