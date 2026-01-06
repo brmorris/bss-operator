@@ -141,10 +141,53 @@ argocd app sync bss-clusters  # manual sync if needed
 10192  kubectl get deployment,service -n default -l app.kubernetes.io/instance=bsscluster-sample
 ```
 
-# bss-api
-
-portforwarding:
+# custom resources
 
 ```
+# List all resources with creation timestamps
+kubectl get bsscluster,bssquery -o wide
+
+# See events related to these resources
+kubectl get events --field-selector involvedObject.kind=BSSQuery
+kubectl get events --field-selector involvedObject.kind=BssCluster
+
+
+# portforwarding:
+
 kubectl port-forward -n default deployment/bsscluster-sample 8880:8880 &
+
+# Check for BssCluster resources
+kubectl get bsscluster
+# or short form
+kubectl get bssc
+
+# Check for BSSQuery resources
+kubectl get bssquery
+# or short form
+kubectl get bssq
+
+# See all at once
+kubectl get bsscluster,bssquery
+
+# Get detailed info about a specific resource
+kubectl describe bsscluster bsscluster-sample
+kubectl describe bssquery bssquery-sample-clusters
+
+# Get YAML output to see full status
+kubectl get bssquery bssquery-sample-clusters -o yaml
+
+# Check the status field specifically (shows query results)
+kubectl get bssquery bssquery-sample-clusters -o jsonpath='{.status}' | jq .
+
+# Check if the samples from the files exist
+kubectl get bsscluster bsscluster-sample 2>/dev/null && echo "✅ BssCluster sample exists" || echo "❌ BssCluster sample not found"
+kubectl get bssquery bssquery-sample-cluster 2>/dev/null && echo "✅ BSSQuery (single) sample exists" || echo "❌ BSSQuery (single) sample not found"
+kubectl get bssquery bssquery-sample-clusters 2>/dev/null && echo "✅ BSSQuery (list) sample exists" || echo "❌ BSSQuery (list) sample not found"
+
+# List all resources with creation timestamps
+kubectl get bsscluster,bssquery -o wide
+
+# See events related to these resources
+kubectl get events --field-selector involvedObject.kind=BSSQuery
+kubectl get events --field-selector involvedObject.kind=BssCluster
 ```

@@ -8,7 +8,7 @@ This directory contains ArgoCD Application manifests for deploying and managing 
 
 1. **bss-platform** (App of Apps) - Parent application that manages all child applications
 2. **bss-operator** - Deploys the operator itself (CRDs, RBAC, controller)
-3. **bss-clusters** - Manages BssCluster CR instances
+3. **bss-clusters** - Manages BssCluster CR instances and BSSQuery CR instances from config/samples
 
 ## Setup
 
@@ -92,6 +92,59 @@ git push
 ```
 
 ArgoCD will automatically deploy the new cluster.
+
+### Managing BSSQuery Instances
+
+BSSQuery resources allow you to query the BSS API GraphQL endpoint. Add new queries in `config/samples/`:
+
+```bash
+# Create a query to list all clusters
+cat > config/samples/bss-query-monitoring.yaml <<EOF
+apiVersion: bss.localhost/v1alpha1
+kind: BSSQuery
+metadata:
+  name: monitor-all-clusters
+spec:
+  apiEndpoint: "http://bss-api.default.svc.cluster.local:8880/graphql"
+  query: clusters
+  refreshInterval: 60
+EOF
+
+git add config/samples/bss-query-monitoring.yaml
+git commit -m "Add cluster monitoring query"
+git push
+```
+
+**Note:** Make sure the BSS API is accessible at the specified endpoint from within the cluster.
+
+### Deploying New Controller Features
+
+When you add new controllers (like BSSQuery), you need to rebuild and redeploy:
+
+```bash
+# 1. Build new image with updated tag
+make docker-build IMG=bss-operator:v0.0.3
+
+# 2. Load into kind (if using kind)
+kind load docker-image bss-operator:v0.0.3
+
+# 3. Update the image tag in config
+cd config/manager
+kustomize edit set image controller=bss-operator:v0.0.3
+cd ../..
+
+# 4. Update Makefile VERSION (optional, for consistency)
+sed -i 's/VERSION ?= .*/VERSION ?= 0.0.3/' Makefile
+
+# 5. Commit and push
+git add config/manager/kustomization.yaml Makefile
+git commit -m "Update controller to v0.0.3 with BSSQuery support"
+git push
+
+# 6. ArgoCD will auto-sync, or manually sync:
+kubectl rollout restart deployment bss-operator-controller-manager -n bss-operator-system
+# Or wait for ArgoCD to sync
+```
 
 ## Local Development
 
