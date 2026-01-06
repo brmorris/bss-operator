@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bss-api
+  namespace: default
+spec:
+  selector:
+    app: bss-api
+  ports:
+  - port: 8880
+    targetPort: 8880
+    protocol: TCP
+    name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bss-api
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bss-api
+  template:
+    metadata:
+      labels:
+        app: bss-api
+    spec:
+      containers:
+      - name: bss-api
+        image: bss-api:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8880
+          name: http
+        env:
+        - name: PORT
+          value: "8880"
